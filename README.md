@@ -2,7 +2,7 @@
 
 [docsrs]: https://docs.rs/sha256-rs
 
-[![Chrono GitHub Actions](https://github.com/baoyachi/sha256-rs/workflows/build/badge.svg)](https://github.com/baoyachi/sha256-rs/actions?query=workflow%3Abuild)
+[![GitHub Actions](https://github.com/baoyachi/sha256-rs/workflows/check/badge.svg)](https://github.com/baoyachi/sha256-rs/actions?query=workflow%3Abuild)
 [![Crates.io](https://img.shields.io/crates/v/sha256-rs.svg)](https://crates.io/crates/sha256-rs)
 [![Docs.rs](https://docs.rs/sha256-rs/badge.svg)](https://docs.rs/sha256-rs)
 [![Download](https://img.shields.io/crates/d/sha256-rs)](https://crates.io/crates/sha256-rs)
