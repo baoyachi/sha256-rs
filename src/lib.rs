@@ -10,7 +10,7 @@
 //! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 //!
 //! //sha256 digest bytes
-//! let input = "hello".as_bytes();
+//! let input = b"hello";
 //! let val = digest_bytes(input);
 //! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 //!
@@ -48,7 +48,7 @@ pub fn digest<S: Into<String>>(input: S) -> String {
 ///
 /// ```rust
 /// use sha256::digest_bytes;
-/// let input = "hello".as_bytes();
+/// let input = b"hello";
 /// let val = digest_bytes(input);
 /// assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
 /// ```

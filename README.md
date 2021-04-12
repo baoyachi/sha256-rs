@@ -28,7 +28,7 @@ fn main() {
 use sha256::digest_bytes;
 
 fn main() {
-    let input = "hello".as_bytes();
+    let input = b"hello";
     let val = digest_bytes(input);
     assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
 }
