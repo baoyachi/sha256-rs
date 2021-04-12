@@ -1,4 +1,4 @@
-# sha256 digest
+# sha256 crypto digest
 
 [docsrs]: https://docs.rs/sha256
 
