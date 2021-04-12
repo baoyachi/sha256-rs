@@ -1,9 +1,9 @@
 [package]
 name = "sha256"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["baoyachi <liaoymxsdl@gmail.com>"]
 edition = "2018"
-description = "sha256 digest"
+description = "sha256 crypto digest"
 keywords = ["sha256", "hash", "digest"]
 readme = "README.md"
 categories = ["cryptography"]

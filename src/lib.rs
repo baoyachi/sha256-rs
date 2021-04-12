@@ -1,3 +1,27 @@
+//! sha256 crypto digest util
+//!
+//! ```rust
+//!
+//! use sha256::{digest,digest_bytes,digest_file};
+//!
+//! //sha256 digest string
+//! let input = "hello";
+//! let val = digest(input);
+//! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+//!
+//! //sha256 digest bytes
+//! let input = "hello".as_bytes();
+//! let val = digest_bytes(input);
+//! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+//!
+//! //sha256 digest file
+//! use std::path::Path;
+//! let input = Path::new("./foo.file");
+//! let val = digest_file(input).unwrap();
+//! assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1");
+//!
+//! ```
+
 use sha2::Digest;
 use std::fs;
 use std::io;
