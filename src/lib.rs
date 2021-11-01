@@ -70,8 +70,8 @@ pub fn digest_bytes(input: &[u8]) -> String {
 /// ```
 ///
 pub fn digest_file<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
-    let buf = fs::read_to_string(path)?;
-    Ok(__digest__(&buf.as_bytes()))
+    let bytes = fs::read(path)?;
+    Ok(__digest__(&bytes()))
 }
 
 fn __digest__(data: &[u8]) -> String {
