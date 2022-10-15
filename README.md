@@ -10,7 +10,7 @@
 
 ## Examples
 
-#### sha256 digest string
+#### sha256 digest function
 
 ```rust
 use sha256::digest;
@@ -18,32 +18,29 @@ use sha256::digest;
 fn main() {
     let input = "hello";
     let val = digest(input);
-    assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
-}
-```
+    assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 
-#### sha256 digest bytes
+    let input = "hello".to_string();
+    let val = digest(input);
+    assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 
-```rust
-use sha256::digest_bytes;
 
-fn main() {
     let input = b"hello";
-    let val = digest_bytes(input);
-    assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
+    let val = digest(input);
+    assert_eq!(val, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 }
 ```
 
-#### sha256 digest file
+#### sha256 try_digest function
 
 ```rust
-use sha256::digest_file;
+use sha256::try_digest;
 use std::path::Path;
 
 fn main() {
     let input = Path::new("./foo.file");
-    let val = digest_file(input).unwrap();
-    assert_eq!(val, "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
+    let val = try_digest(input).unwrap();
+    assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1");
 }
 ```
 
