@@ -111,6 +111,12 @@ impl<const N: usize> Sha256Digest for &[u8; N] {
     }
 }
 
+impl Sha256Digest for &[u8] {
+    fn digest(self) -> String {
+        __digest__(self)
+    }
+}
+
 impl Sha256Digest for String {
     fn digest(self) -> String {
         __digest__(self.as_bytes())
