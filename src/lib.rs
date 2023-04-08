@@ -27,10 +27,11 @@
 //!
 //! ```
 
-use sha2::Digest;
+use sha2::{Digest, Sha256};
 use std::fmt::Debug;
 use std::fs;
 use std::io;
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 /// sha256 digest string
@@ -132,8 +133,21 @@ impl Sha256Digest for &str {
 impl TrySha256Digest for &Path {
     type Error = io::Error;
     fn digest(self) -> Result<String, Self::Error> {
-        let bytes = fs::read(self)?;
-        Ok(__digest__(&bytes))
+        let mut sha = Sha256::new();
+        let f = fs::File::open(self)?;
+        let mut reader = BufReader::new(f);
+        // let bytes = fs::read(self)?;
+        let mut buf = [0u8; 1024];
+        loop {
+            let len = reader.read(&mut buf)?;
+            if len == 0 {
+                break;
+            }
+            sha.update(&buf[0..len]);
+        }
+        let hash = sha.finalize();
+
+        Ok(hex::encode(hash))
     }
 }
 
