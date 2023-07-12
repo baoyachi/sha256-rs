@@ -142,6 +142,12 @@ impl Sha256Digest for &str {
     }
 }
 
+impl Sha256Digest for &String {
+    fn digest(self) -> String {
+        __digest__(self.as_bytes())
+    }
+}
+
 impl TrySha256Digest for &Path {
     type Error = io::Error;
     fn digest(self) -> Result<String, Self::Error> {
