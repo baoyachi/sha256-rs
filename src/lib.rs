@@ -118,6 +118,18 @@ impl Sha256Digest for &[u8] {
     }
 }
 
+impl Sha256Digest for &Vec<u8> {
+    fn digest(self) -> String {
+        __digest__(self)
+    }
+}
+
+impl Sha256Digest for Vec<u8> {
+    fn digest(self) -> String {
+        __digest__(&self)
+    }
+}
+
 impl Sha256Digest for String {
     fn digest(self) -> String {
         __digest__(self.as_bytes())
@@ -125,6 +137,12 @@ impl Sha256Digest for String {
 }
 
 impl Sha256Digest for &str {
+    fn digest(self) -> String {
+        __digest__(self.as_bytes())
+    }
+}
+
+impl Sha256Digest for &String {
     fn digest(self) -> String {
         __digest__(self.as_bytes())
     }
