@@ -102,9 +102,11 @@ pub trait Sha256Digest {
     fn digest(self) -> String;
 }
 
+#[async_trait::async_trait]
 pub trait TrySha256Digest {
     type Error: Debug;
     fn digest(self) -> Result<String, Self::Error>;
+    async fn async_digest(self) -> Result<String, Self::Error>;
 }
 
 impl<const N: usize> Sha256Digest for &[u8; N] {
@@ -149,13 +151,20 @@ impl Sha256Digest for &String {
     }
 }
 
+#[async_trait::async_trait]
 impl TrySha256Digest for &Path {
     type Error = io::Error;
     fn digest(self) -> Result<String, Self::Error> {
         let f = fs::File::open(self)?;
         let reader = BufReader::new(f);
         let sha = Sha256::new();
-        Ok((reader, sha).calc())
+        Ok((reader, sha).calc()?)
+    }
+
+    async fn async_digest(self) -> Result<String, Self::Error>
+    {
+        // (reader, sha).async_calc().await
+        todo!("")
     }
 }
 
@@ -165,20 +174,20 @@ fn __digest__(data: &[u8]) -> String {
 
 trait Calculator {
     type FinishType: AsRef<[u8]>;
-    fn calc(mut self) -> String
+    fn calc(mut self) -> io::Result<String>
     where
         Self: Sized,
     {
         let mut buf = [0u8; 1024];
         loop {
-            let len = self.read(&mut buf).unwrap();
+            let len = self.read(&mut buf)?;
             if len == 0 {
                 break;
             }
             self.update(&buf[0..len]);
         }
         let hash = self.finish();
-        hex::encode(hash)
+        Ok(hex::encode(hash))
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize>;
@@ -245,7 +254,7 @@ mod tests {
         let sha = openssl::sha::Sha256::new();
         assert_eq!(
             "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
-            (reader, sha).calc()
+            (reader, sha).calc().unwrap()
         );
     }
 }
