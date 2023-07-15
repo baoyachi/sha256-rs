@@ -81,7 +81,7 @@ pub fn try_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
 /// use sha256::{try_async_digest};
 /// use std::path::Path;
 /// let input = Path::new("./foo.file");
-/// tokio_test::block_on(async{ ///
+/// tokio_test::block_on(async{
 /// let val = try_async_digest(input).await.unwrap();
 /// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
 /// });
@@ -99,7 +99,7 @@ pub async fn try_async_digest<D: TrySha256Digest>(input: D) -> Result<String, D:
 /// use sha256::{try_async_openssl_digest};
 /// use std::path::Path;
 /// let input = Path::new("./foo.file");
-/// tokio_test::block_on(async{ ///
+/// tokio_test::block_on(async{
 /// let val = try_async_openssl_digest(input).await.unwrap();
 /// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
 /// });
