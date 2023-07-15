@@ -16,7 +16,6 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -46,3 +45,54 @@ jobs:
           override: true
       - name: Build on nightly
         run: cargo build --release
+  windows-vcpkg:
+    name: windows-vcpkg
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: sfackler/actions/rustup@master
+      - run: echo "version=$(rustc --version)" >> $GITHUB_OUTPUT
+        id: rust-version
+      - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - run: vcpkg install openssl:x64-windows-static-md
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry/index
+          key: index-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: |
+            index-${{ runner.os }}-
+      - run: cargo generate-lockfile
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry/cache
+          key: registry-${{ runner.os }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
+      - run: cargo fetch
+      - uses: actions/cache@v3
+        with:
+          path: target
+          key: target-${{ github.job }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
+      # - run: cargo run -p systest
+      - run: cargo test -p openssl
+      - run: cargo test -p openssl-errors
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy, rustfmt
+      - name: Check format
+        run: cargo fmt --all -- --check
+      - name: Check fix
+        run: cargo fix && cargo fix
+      - name: Check with clippy
+        run: cargo clippy --all -- -D warnings
+      - name: Build Release
+        run: cargo build --release
+      - name: Run tests
+        run: cargo test  --all-features --all
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Build on nightly
+        run: cargo build --release
+
