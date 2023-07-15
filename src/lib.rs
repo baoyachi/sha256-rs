@@ -27,6 +27,9 @@
 //!
 //! ```
 
+#[cfg(feature = "native_openssl")]
+use crate::openssl_sha256::OpenSslSha256;
+use bytes::BytesMut;
 use sha2::digest::Output;
 use sha2::{Digest, Sha256};
 use std::fmt::Debug;
@@ -34,6 +37,7 @@ use std::fs;
 use std::io;
 use std::io::{BufReader, Read};
 use std::path::Path;
+use tokio::io::AsyncReadExt;
 
 /// sha256 digest string
 ///
@@ -61,8 +65,48 @@ pub fn digest<D: Sha256Digest>(input: D) -> String {
 /// let val = try_digest(input).unwrap();
 /// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
 /// ```
+#[deprecated(
+    since = "1.2.0",
+    note = "Use new function `try_async_digest()` instead"
+)]
 pub fn try_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
     input.digest()
+}
+
+/// sha256 digest file
+///
+/// # Examples
+///
+/// ```rust
+/// use sha256::{try_async_digest};
+/// use std::path::Path;
+/// let input = Path::new("./foo.file");
+/// tokio_test::block_on(async{ ///
+/// let val = try_async_digest(input).await.unwrap();
+/// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
+/// });
+///
+/// ```
+pub async fn try_async_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
+    input.async_digest().await
+}
+
+/// sha256 digest file
+///
+/// # Examples
+///
+/// ```rust
+/// use sha256::{try_async_openssl_digest};
+/// use std::path::Path;
+/// let input = Path::new("./foo.file");
+/// tokio_test::block_on(async{ ///
+/// let val = try_async_openssl_digest(input).await.unwrap();
+/// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
+/// });
+/// ```
+#[cfg(feature = "native_openssl")]
+pub async fn try_async_openssl_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
+    input.async_openssl_digest().await
 }
 
 /// sha256 digest bytes
@@ -105,8 +149,13 @@ pub trait Sha256Digest {
 #[async_trait::async_trait]
 pub trait TrySha256Digest {
     type Error: Debug;
+
     fn digest(self) -> Result<String, Self::Error>;
+
     async fn async_digest(self) -> Result<String, Self::Error>;
+
+    #[cfg(feature = "native_openssl")]
+    async fn async_openssl_digest(self) -> Result<String, Self::Error>;
 }
 
 impl<const N: usize> Sha256Digest for &[u8; N] {
@@ -152,19 +201,32 @@ impl Sha256Digest for &String {
 }
 
 #[async_trait::async_trait]
-impl TrySha256Digest for &Path {
+impl<P> TrySha256Digest for P
+where
+    P: AsRef<Path> + Send,
+{
     type Error = io::Error;
+
     fn digest(self) -> Result<String, Self::Error> {
         let f = fs::File::open(self)?;
         let reader = BufReader::new(f);
         let sha = Sha256::new();
-        Ok((reader, sha).calc()?)
+        calc(reader, sha)
     }
 
-    async fn async_digest(self) -> Result<String, Self::Error>
-    {
-        // (reader, sha).async_calc().await
-        todo!("")
+    async fn async_digest(self) -> Result<String, Self::Error> {
+        let f = tokio::fs::File::open(self).await?;
+        let reader = tokio::io::BufReader::new(f);
+        let sha = Sha256::new();
+        async_calc(reader, sha).await
+    }
+
+    #[cfg(feature = "native_openssl")]
+    async fn async_openssl_digest(self) -> Result<String, Self::Error> {
+        let f = tokio::fs::File::open(self).await?;
+        let reader = tokio::io::BufReader::new(f);
+        let sha = OpenSslSha256::new();
+        async_calc(reader, sha).await
     }
 }
 
@@ -172,71 +234,101 @@ fn __digest__(data: &[u8]) -> String {
     hex::encode(Sha256::digest(data))
 }
 
-trait Calculator {
-    type FinishType: AsRef<[u8]>;
-    fn calc(mut self) -> io::Result<String>
-    where
-        Self: Sized,
-    {
-        let mut buf = [0u8; 1024];
-        loop {
-            let len = self.read(&mut buf)?;
-            if len == 0 {
-                break;
-            }
-            self.update(&buf[0..len]);
-        }
-        let hash = self.finish();
-        Ok(hex::encode(hash))
-    }
-
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize>;
-    fn update(&mut self, data: &[u8]);
-    fn finish(self) -> Self::FinishType;
+trait CalculatorInput {
+    fn read_inner(&mut self, buf: &mut [u8]) -> std::io::Result<usize>;
 }
 
-impl<R> Calculator for (R, Sha256)
+#[async_trait::async_trait]
+trait AsyncCalculatorInput {
+    async fn read_inner(&mut self, buf: &mut BytesMut) -> std::io::Result<usize>;
+}
+
+impl<T> CalculatorInput for T
 where
-    R: Read,
+    T: Read,
 {
+    fn read_inner(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read(buf)
+    }
+}
+
+#[async_trait::async_trait]
+impl<R> AsyncCalculatorInput for tokio::io::BufReader<R>
+where
+    R: tokio::io::AsyncRead + Unpin + Send,
+{
+    async fn read_inner(&mut self, buf: &mut BytesMut) -> io::Result<usize> {
+        self.read_buf(buf).await
+    }
+}
+
+trait CalculatorSelector {
+    type FinishType: AsRef<[u8]>;
+    fn update_inner(&mut self, data: &[u8]);
+    fn finish_inner(self) -> Self::FinishType;
+}
+
+impl CalculatorSelector for Sha256 {
     type FinishType = Output<Sha256>;
 
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.0.read(buf)
+    fn update_inner(&mut self, data: &[u8]) {
+        self.update(data)
     }
 
-    fn update(&mut self, data: &[u8]) {
-        self.1.update(data)
+    fn finish_inner(self) -> Self::FinishType {
+        self.finalize()
     }
+}
 
-    fn finish(self) -> Self::FinishType {
-        self.1.finalize()
+fn calc<I, S>(mut input: I, mut selector: S) -> io::Result<String>
+where
+    I: CalculatorInput,
+    S: CalculatorSelector,
+{
+    let mut buf = [0u8; 1024];
+    loop {
+        let len = input.read_inner(&mut buf)?;
+        if len == 0 {
+            break;
+        }
+        selector.update_inner(&buf[0..len]);
     }
+    let hash = selector.finish_inner();
+    Ok(hex::encode(hash))
+}
+
+async fn async_calc<I, S>(mut input: I, mut selector: S) -> io::Result<String>
+where
+    I: AsyncCalculatorInput,
+    S: CalculatorSelector,
+{
+    let mut buf = BytesMut::with_capacity(1024);
+    loop {
+        let len = input.read_inner(&mut buf).await?;
+        if len == 0 {
+            break;
+        }
+        selector.update_inner(&buf[0..len]);
+    }
+    let hash = selector.finish_inner();
+    Ok(hex::encode(hash))
 }
 
 #[cfg(feature = "native_openssl")]
 mod openssl_sha256 {
-    use crate::Calculator;
-    use std::io::Read;
+    use crate::CalculatorSelector;
 
-    type OpenSslSha256 = openssl::sha::Sha256;
+    pub type OpenSslSha256 = openssl::sha::Sha256;
 
-    impl<R> Calculator for (R, OpenSslSha256)
-    where
-        R: Read,
-    {
+    impl CalculatorSelector for OpenSslSha256 {
         type FinishType = [u8; 32];
 
-        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-            self.0.read(buf)
+        fn update_inner(&mut self, data: &[u8]) {
+            self.update(data)
         }
 
-        fn update(&mut self, data: &[u8]) {
-            self.1.update(data)
-        }
-
-        fn finish(self) -> Self::FinishType {
-            self.1.finish()
+        fn finish_inner(self) -> Self::FinishType {
+            self.finish()
         }
     }
 }
@@ -247,14 +339,71 @@ mod tests {
 
     #[cfg(feature = "native_openssl")]
     #[test]
-    fn test_openssl_sha256() {
+    fn test_openssl() {
         let input = Path::new("./foo.file");
         let f = fs::File::open(input).unwrap();
         let reader = BufReader::new(f);
         let sha = openssl::sha::Sha256::new();
         assert_eq!(
             "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
-            (reader, sha).calc().unwrap()
+            calc(reader, sha).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_sha256() {
+        let input = Path::new("./foo.file");
+        let f = fs::File::open(input).unwrap();
+        let reader = BufReader::new(f);
+        let sha = Sha256::new();
+        assert_eq!(
+            "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
+            calc(reader, sha).unwrap()
+        );
+    }
+
+    #[cfg(feature = "native_openssl")]
+    #[tokio::test]
+    async fn test_async_openssl() {
+        let input = Path::new("./foo.file");
+        let f = tokio::fs::File::open(input).await.unwrap();
+        let reader = tokio::io::BufReader::new(f);
+        let sha = openssl::sha::Sha256::new();
+        assert_eq!(
+            "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
+            async_calc(reader, sha).await.unwrap()
+        );
+    }
+
+    #[cfg(feature = "native_openssl")]
+    #[tokio::test]
+    async fn test_async() {
+        let input = Path::new("./foo.file");
+        let f = tokio::fs::File::open(input).await.unwrap();
+        let reader = tokio::io::BufReader::new(f);
+        let sha = Sha256::new();
+        assert_eq!(
+            "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
+            async_calc(reader, sha).await.unwrap()
+        );
+    }
+
+    #[cfg(feature = "native_openssl")]
+    #[tokio::test]
+    async fn test_try_async_openssl_digest() {
+        let hash = try_async_openssl_digest("./foo.file").await.unwrap();
+        assert_eq!(
+            "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
+            hash
+        );
+    }
+
+    #[tokio::test]
+    async fn test_try_async_digest() {
+        let hash = try_async_digest("./foo.file").await.unwrap();
+        assert_eq!(
+            "433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1",
+            hash
         );
     }
 }
