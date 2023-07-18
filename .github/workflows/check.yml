@@ -34,7 +34,7 @@ jobs:
       - name: Check with clippy
         run: cargo clippy --all -- -D warnings
       - name: Build Release
-        run: cargo build --release
+        run: cargo build --release --all-features
       - name: Run tests
         run: cargo test  --all-features --all
 
@@ -44,7 +44,7 @@ jobs:
           toolchain: nightly
           override: true
       - name: Build on nightly
-        run: cargo build --release
+        run: cargo build --release --all-features
   windows-vcpkg:
     name: windows-vcpkg
     runs-on: windows-latest
