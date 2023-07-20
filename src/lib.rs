@@ -65,10 +65,6 @@ pub fn digest<D: Sha256Digest>(input: D) -> String {
 /// let val = try_digest(input).unwrap();
 /// assert_eq!(val,"433855b7d2b96c23a6f60e70c655eb4305e8806b682a9596a200642f947259b1")
 /// ```
-#[deprecated(
-    since = "1.2.0",
-    note = "Use new function `try_async_digest()` instead"
-)]
 pub fn try_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
     input.digest()
 }
