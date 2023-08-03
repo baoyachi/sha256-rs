@@ -407,6 +407,7 @@ mod tests {
     #[tokio::test]
     async fn test_async_parity() {
         let bytes = (0..0x1000).map(|v| (v % 256) as u8).collect::<Vec<_>>();
+        let val = digest(&bytes);
 
         let async_res = {
             let bytes = &bytes;
@@ -432,6 +433,41 @@ mod tests {
             let sha = Sha256::new();
             calc(reader, sha).unwrap()
         };
+        assert_eq!(val, async_res);
+        assert_eq!(async_res, sync_res);
+    }
+
+    #[cfg(feature = "native_openssl")]
+    #[tokio::test]
+    async fn test_async_parity_openssl() {
+        let bytes = (0..0x1000).map(|v| (v % 256) as u8).collect::<Vec<_>>();
+        let val = digest(&bytes);
+
+        let async_res = {
+            let bytes = &bytes;
+            // We want to force Poll::Pending on reads during async_calc, which may break parity
+            // between sync and async hashing.
+            let (client, mut server) = tokio::io::duplex(64);
+            let reader = tokio::io::BufReader::new(client);
+            let sha = OpenSslSha256::new();
+
+            tokio::join! {
+                async_calc(reader, sha),
+                async move {
+                    server.write_all(&bytes[..]).await.unwrap();
+                    core::mem::drop(server);
+                }
+            }
+            .0
+                .unwrap()
+        };
+
+        let sync_res = {
+            let reader = BufReader::new(&*bytes);
+            let sha = OpenSslSha256::new();
+            calc(reader, sha).unwrap()
+        };
+        assert_eq!(val, async_res);
         assert_eq!(async_res, sync_res);
     }
 }
