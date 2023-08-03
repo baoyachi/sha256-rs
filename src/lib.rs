@@ -459,7 +459,7 @@ mod tests {
                 }
             }
             .0
-                .unwrap()
+            .unwrap()
         };
 
         let sync_res = {
