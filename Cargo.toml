@@ -1,6 +1,6 @@
 [package]
 name = "sha256"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["baoyachi <liaoymxsdl@gmail.com>"]
 edition = "2018"
 description = "sha256 crypto digest"
