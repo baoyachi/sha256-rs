@@ -14,6 +14,16 @@
 //! let val = digest(input);
 //! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
 //!
+//! //sha256 digest &mut &str
+//! let mut input = "hello";
+//! let val = digest(&mut input);
+//! assert_eq!(val,"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+//!
+//! //sha256 digest char
+//! let mut input = "π";
+//! let val = digest(input);
+//! assert_eq!(val,"2617fcb92baa83a96341de050f07a3186657090881eae6b833f66a035600f35a");
+//!
 //! //sha256 digest bytes
 //! let input = b"hello";
 //! let val = digest(input);
@@ -151,6 +161,18 @@ impl Sha256Digest for String {
 }
 
 impl Sha256Digest for &str {
+    fn digest(self) -> String {
+        __digest__(self.as_bytes())
+    }
+}
+
+impl Sha256Digest for char {
+    fn digest(self) -> String {
+        __digest__(self.encode_utf8(&mut [0; 4]).as_bytes())
+    }
+}
+
+impl Sha256Digest for &mut &str {
     fn digest(self) -> String {
         __digest__(self.as_bytes())
     }
