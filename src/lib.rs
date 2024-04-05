@@ -54,6 +54,8 @@ use std::path::Path;
 pub mod async_digest;
 #[cfg(test)]
 mod tests;
+#[cfg(feature = "native_openssl")]
+mod openssl_sha256;
 
 /// sha256 digest string
 ///
@@ -270,24 +272,4 @@ where
     }
     let hash = selector.finish_inner();
     Ok(hex::encode(hash))
-}
-
-
-#[cfg(feature = "native_openssl")]
-mod openssl_sha256 {
-    use crate::CalculatorSelector;
-
-    pub type OpenSslSha256 = openssl::sha::Sha256;
-
-    impl CalculatorSelector for OpenSslSha256 {
-        type FinishType = [u8; 32];
-
-        fn update_inner(&mut self, data: &[u8]) {
-            self.update(data)
-        }
-
-        fn finish_inner(self) -> Self::FinishType {
-            self.finish()
-        }
-    }
 }
