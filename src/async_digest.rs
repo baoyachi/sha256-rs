@@ -34,9 +34,7 @@ pub async fn try_async_digest<D: TrySha256Digest>(input: D) -> Result<String, D:
 /// });
 /// ```
 #[cfg(feature = "native_openssl")]
-pub async fn try_async_openssl_digest<D: TrySha256Digest>(
-    input: D,
-) -> Result<String, D::Error> {
+pub async fn try_async_openssl_digest<D: TrySha256Digest>(input: D) -> Result<String, D::Error> {
     input.async_openssl_digest().await
 }
 

@@ -52,10 +52,10 @@ use std::path::Path;
 
 #[cfg(feature = "async")]
 pub mod async_digest;
-#[cfg(test)]
-mod tests;
 #[cfg(feature = "native_openssl")]
 mod openssl_sha256;
+#[cfg(test)]
+mod tests;
 
 /// sha256 digest string
 ///
