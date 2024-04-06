@@ -76,6 +76,7 @@ jobs:
           override: true
       - name: Build on nightly
         run: cargo build --release
+
   publish-crate:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
