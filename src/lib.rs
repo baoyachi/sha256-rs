@@ -37,11 +37,17 @@
 //!
 //! ```
 
+#[cfg(feature = "async")]
+pub mod async_digest;
+#[cfg(feature = "native_openssl")]
+mod openssl_sha256;
+
 #[cfg(feature = "native_openssl")]
 use crate::openssl_sha256::OpenSslSha256;
 
 #[cfg(feature = "async")]
 pub use async_digest::*;
+
 use sha2::digest::Output;
 use sha2::{Digest, Sha256};
 use std::fmt::Debug;
@@ -50,10 +56,6 @@ use std::io;
 use std::io::{BufReader, Read};
 use std::path::Path;
 
-#[cfg(feature = "async")]
-pub mod async_digest;
-#[cfg(feature = "native_openssl")]
-mod openssl_sha256;
 #[cfg(test)]
 mod tests;
 
