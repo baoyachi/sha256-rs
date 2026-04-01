@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 hex = "0.4.2"
-sha2 = { version = "0.10.6", default-features = false }
+sha2 = { version = "0.11.0", default-features = false }
 openssl = { version = "0.10.54", optional = true, default-features = false }
 async-trait = "0.1.68"
 tokio = { version = "1.28.2", optional = true, features = ["io-util", "fs"] }
