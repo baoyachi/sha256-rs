@@ -21,7 +21,7 @@ tokio = { version = "1.28.2", optional = true, features = ["io-util", "fs"] }
 bytes = "1.4.0"
 
 [features]
-default = ["async"]
+default = []
 native_openssl = ["openssl"]
 async = ["tokio"]
 
