@@ -1,5 +1,6 @@
 use crate::{CalculatorSelector, TrySha256Digest};
 use bytes::BytesMut;
+use std::future::Future;
 use std::io;
 
 /// sha256 digest file
@@ -38,9 +39,8 @@ pub async fn try_async_openssl_digest<D: TrySha256Digest>(input: D) -> Result<St
     input.async_openssl_digest().await
 }
 
-#[async_trait::async_trait]
 pub trait AsyncCalculatorInput {
-    async fn read_inner(&mut self, buf: &mut BytesMut) -> io::Result<usize>;
+    fn read_inner(&mut self, buf: &mut BytesMut) -> impl Future<Output = io::Result<usize>> + Send;
 }
 
 pub async fn async_calc<I, S>(mut input: I, mut selector: S) -> io::Result<String>
@@ -61,7 +61,6 @@ where
     Ok(hex::encode(hash))
 }
 
-#[async_trait::async_trait]
 impl<R> AsyncCalculatorInput for tokio::io::BufReader<R>
 where
     R: tokio::io::AsyncRead + Unpin + Send,

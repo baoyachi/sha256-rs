@@ -126,17 +126,18 @@ pub trait Sha256Digest {
     fn digest(self) -> String;
 }
 
-#[async_trait::async_trait]
 pub trait TrySha256Digest {
     type Error: Debug;
 
     fn digest(self) -> Result<String, Self::Error>;
 
     #[cfg(feature = "async")]
-    async fn async_digest(self) -> Result<String, Self::Error>;
+    fn async_digest(self) -> impl std::future::Future<Output = Result<String, Self::Error>> + Send;
 
     #[cfg(feature = "native_openssl")]
-    async fn async_openssl_digest(self) -> Result<String, Self::Error>;
+    fn async_openssl_digest(
+        self,
+    ) -> impl std::future::Future<Output = Result<String, Self::Error>> + Send;
 }
 
 impl<const N: usize> Sha256Digest for &[u8; N] {
@@ -193,7 +194,6 @@ impl Sha256Digest for &String {
     }
 }
 
-#[async_trait::async_trait]
 impl<P> TrySha256Digest for P
 where
     P: AsRef<Path> + Send,

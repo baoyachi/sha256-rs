@@ -140,3 +140,20 @@ async fn test_async_parity_openssl() {
     assert_eq!(val, async_res);
     assert_eq!(async_res, sync_res);
 }
+
+// Generic callers passing borrowed arguments must still produce `Send` futures,
+// see rust-lang/rust#100013.
+#[cfg(feature = "async")]
+#[test]
+fn test_async_send() {
+    fn assert_send<F: Send>(_: F) {}
+
+    assert_send(try_async_digest(Path::new("./foo.file")));
+    assert_send(try_async_digest("./foo.file"));
+    assert_send(try_async_digest(&String::from("./foo.file")));
+    #[cfg(feature = "native_openssl")]
+    assert_send(try_async_openssl_digest(Path::new("./foo.file")));
+
+    let reader = tokio::io::BufReader::new(&b"hello"[..]);
+    assert_send(async_calc(reader, Sha256::new()));
+}
